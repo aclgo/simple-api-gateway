@@ -10,11 +10,12 @@ import (
 	"github.com/aclgo/simple-api-gateway/internal/user"
 	userService "github.com/aclgo/simple-api-gateway/proto-services/user"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
 	AddrServiceUser    = ":50051"
-	OptionsServiceUser = []grpc.DialOption{}
+	OptionsServiceUser = []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 
 	AddrServiceAdmin    = ":50052"
 	OptionsServiceAdmin = []grpc.DialOption{}
@@ -41,6 +42,7 @@ func main() {
 	http.HandleFunc("/api/user/find", userHandler.Find(ctx))
 	http.HandleFunc("/api/user/update", userHandler.Update(ctx))
 
+	log.Println("server running port 3000")
 	if err := http.ListenAndServe(":3000", nil); err != nil {
 		log.Fatalf("http.ListenAndServe:%v", err)
 	}
