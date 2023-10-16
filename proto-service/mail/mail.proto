@@ -1,0 +1,19 @@
+syntax =  "proto3";
+
+option go_package = "github.com/aclgo/grpc-jwt/proto-service/mail";  
+
+message MailRequest {
+    string from = 1;
+    string to = 2;
+    string subject = 3;
+    string body = 4;
+    string template = 5;
+}
+
+message MailResponse {
+    string message = 1;
+}
+
+service MailService{
+    rpc SendService(MailRequest) returns (MailResponse) {};
+}
