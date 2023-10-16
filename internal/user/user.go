@@ -2,32 +2,26 @@ package user
 
 import (
 	"context"
+	"fmt"
 	"time"
-
-	userService "github.com/aclgo/simple-api-gateway/proto-services/user"
 )
 
-type UserService struct {
-	userServiceClient userService.UserServiceClient
+type UserUC interface {
+	Register(ctx context.Context, params *ParamsUserRegister) (*User, error)
+	Login(ctx context.Context, params *ParamsUserLoginRequest) (*ParamsUserLoginResponse, error)
+	Logout(ctx context.Context, params *ParamsUserLogout) error
+	FindById(ctx context.Context, params *ParamsUserFindById) (*User, error)
+	FindByEmail(ctx context.Context, params *ParamsUserFindByEmail) (*User, error)
+	Update(ctx context.Context, params *ParamsUserUpdate) (*User, error)
+	SendConfirm(ctx context.Context, params *ParamsConfirm) error
+	ResetPass(ctx context.Context, params *ParamsResetPass) error
+	NewPass(ctx context.Context, params *ParamsNewPass) error
 }
 
-func NewUser(userServiceClient userService.UserServiceClient) *UserService {
-	return &UserService{
-		userServiceClient: userServiceClient,
-	}
-}
-
-type ParamsRegister struct {
-	Name     string `json:"name"`
-	Lastname string `json:"last_name"`
-	Email    string `json:"email"`
-	Password string `json:"password"`
-}
-
-type ParamsRegistredUser struct {
+type User struct {
 	UserID    string    `json:"user_id"`
 	Name      string    `json:"name"`
-	Lastname  string    `json:"last_name"`
+	Lastname  string    `json:"lastname"`
 	Password  string    `json:"password"`
 	Email     string    `json:"email"`
 	Role      string    `json:"role"`
@@ -35,155 +29,124 @@ type ParamsRegistredUser struct {
 	UpdatedAt time.Time `json:"updated_at"`
 }
 
-func (u *UserService) Register(ctx context.Context, params *ParamsRegister) (*ParamsRegistredUser, error) {
-	created, err := u.userServiceClient.Register(
-		ctx,
-		&userService.CreateUserRequest{
-			Name:     params.Name,
-			LastName: params.Lastname,
-			Password: params.Password,
-			Email:    params.Email,
-		},
-	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &ParamsRegistredUser{
-		UserID:    created.User.Id,
-		Name:      created.User.Name,
-		Lastname:  created.User.LastName,
-		Password:  created.User.Password,
-		Email:     created.User.Email,
-		Role:      created.User.Role,
-		CreatedAt: created.User.CreatedAt.AsTime(),
-		UpdatedAt: created.User.UpdatedAt.AsTime(),
-	}, nil
+type ParamsUserRegister struct {
+	Name     string `json:"name"`
+	Lastname string `json:"lastname"`
+	Password string `json:"password"`
+	Email    string `json:"email"`
 }
 
-type ParamsLogin struct {
+func (p *ParamsUserRegister) Validate() error { return nil }
+
+type ParamsUserLoginRequest struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
 
-type ParamsTokensLogin struct {
-	Access  string `json:"access_token"`
-	Refresh string `json:"refresh_token"`
+func (p *ParamsUserLoginRequest) Validate() error { return nil }
+
+type ParamsUserLoginResponse struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }
 
-func (u *UserService) Login(ctx context.Context, params *ParamsLogin) (*ParamsTokensLogin, error) {
-	tokens, err := u.userServiceClient.Login(
-		ctx,
-		&userService.UserLoginRequest{
-			Email:    params.Email,
-			Password: params.Password,
-		},
-	)
+type ParamsUserLogout struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
 
-	if err != nil {
-		return nil, err
+func (p *ParamsUserLogout) Validate() error {
+	if p.AccessToken == "" {
+		return fmt.Errorf("access_token empty")
 	}
 
-	return &ParamsTokensLogin{
-		Access:  tokens.Tokens.AccessToken,
-		Refresh: tokens.Tokens.RefreshToken,
-	}, nil
-}
-
-func (u *UserService) Logout(ctx context.Context, params *ParamsTokensLogin) error {
-	_, err := u.userServiceClient.Logout(
-		ctx,
-		&userService.UserLogoutRequest{
-			AccessToken:  params.Access,
-			RefreshToken: params.Refresh,
-		},
-	)
-
-	if err != nil {
-		return err
+	if p.RefreshToken == "" {
+		return fmt.Errorf("refresh_token empty")
 	}
 
 	return nil
-
 }
 
-type ParamsFindById struct {
+type ParamsUserFindById struct {
 	UserID string `json:"user_id"`
 }
 
-func (u *UserService) FindById(ctx context.Context, params *ParamsFindById) (*ParamsRegistredUser, error) {
-	found, err := u.userServiceClient.FindById(ctx, &userService.FindByIdRequest{Id: params.UserID})
-	if err != nil {
-		return nil, err
+func (p *ParamsUserFindById) Validate() error {
+	if p.UserID == "" {
+		return fmt.Errorf("user_id empty")
 	}
-
-	return &ParamsRegistredUser{
-		UserID:    found.User.Id,
-		Name:      found.User.Name,
-		Lastname:  found.User.LastName,
-		Password:  found.User.Password,
-		Email:     found.User.Email,
-		Role:      found.User.Role,
-		CreatedAt: found.User.CreatedAt.AsTime(),
-		UpdatedAt: found.User.UpdatedAt.AsTime(),
-	}, nil
+	return nil
 }
 
-type ParamsFindByEmail struct {
-	UserEmail string `json:"user_email"`
+type ParamsUserFindByEmail struct {
+	Email string `json:"email"`
 }
 
-func (u *UserService) FindByEmail(ctx context.Context, params *ParamsFindByEmail) (*ParamsRegistredUser, error) {
-	found, err := u.userServiceClient.FindByEmail(ctx, &userService.FindByEmailRequest{Email: params.UserEmail})
-	if err != nil {
-		return nil, err
+func (p *ParamsUserFindByEmail) Validate() error {
+	if p.Email == "" {
+		return fmt.Errorf("email empty")
 	}
-
-	return &ParamsRegistredUser{
-		UserID:    found.User.Id,
-		Name:      found.User.Name,
-		Lastname:  found.User.LastName,
-		Password:  found.User.Password,
-		Email:     found.User.Email,
-		Role:      found.User.Role,
-		CreatedAt: found.User.CreatedAt.AsTime(),
-		UpdatedAt: found.User.UpdatedAt.AsTime(),
-	}, nil
+	return nil
 }
 
-type ParamsUpdate struct {
+type ParamsUserUpdate struct {
 	UserID   string `json:"user_id"`
 	Name     string `json:"name"`
-	Lastname string `json:"last_name"`
+	Lastname string `json:"lastname"`
 	Password string `json:"password"`
 	Email    string `json:"email"`
 }
 
-func (u *UserService) Update(ctx context.Context, params *ParamsUpdate) (*ParamsRegistredUser, error) {
-	updated, err := u.userServiceClient.Update(
-		ctx,
-		&userService.UpdateRequest{
-			Id:       params.UserID,
-			Name:     params.Name,
-			Lastname: params.Lastname,
-			Password: params.Password,
-			Email:    params.Email,
-		},
-	)
-
-	if err != nil {
-		return nil, err
+func (p *ParamsUserUpdate) Validate() error {
+	if p.UserID == "" {
+		return fmt.Errorf("user_id empty")
 	}
 
-	return &ParamsRegistredUser{
-		UserID:    updated.User.Id,
-		Name:      updated.User.Name,
-		Lastname:  updated.User.LastName,
-		Password:  updated.User.Password,
-		Email:     updated.User.Email,
-		Role:      updated.User.Role,
-		CreatedAt: updated.User.CreatedAt.AsTime(),
-		UpdatedAt: updated.User.UpdatedAt.AsTime(),
-	}, nil
+	return nil
+}
+
+type ParamsConfirm struct {
+	To           string
+	IntervalSend time.Duration
+}
+
+type ParamsResetPass struct {
+	Email string `json:"email"`
+}
+
+func (p *ParamsResetPass) Validate() error {
+	if p.Email == "" {
+		return fmt.Errorf("email empty")
+	}
+
+	return nil
+}
+
+type ParamsNewPass struct {
+	NewPass     string `json:"new_pass"`
+	ConfirmPass string `json:"confirm_pass"`
+}
+
+func (p *ParamsNewPass) Validate() error {
+	if p.NewPass == "" {
+		return fmt.Errorf("new_pass empty")
+	}
+
+	if p.ConfirmPass == "" {
+		return fmt.Errorf("confirm_pass empty")
+	}
+
+	if p.ConfirmPass != p.NewPass {
+		return fmt.Errorf("passwords not match")
+	}
+
+	return nil
+}
+
+type ErrEmailCadastred struct {
+	Message string
+}
+
+func (e ErrEmailCadastred) Error() string {
+	return e.Message
 }
