@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -41,7 +42,9 @@ var (
 
 func main() {
 
-	logger, err := logger.NewapiLogger(&config.Config{})
+	cfg := config.Load(".")
+
+	logger, err := logger.NewapiLogger(cfg)
 	if err != nil {
 		log.Fatalf("logger.NewapiLogger: %s\n", err)
 	}
@@ -73,7 +76,7 @@ func main() {
 	mailUserService := protoMail.NewMailServiceClient(connMail)
 
 	user := userUC.NewuserUC(clientUserService, mailUserService, redisClient, logger)
-	admin := adminUC.NewadminUC(adminUserService, redisClient, logger)
+	admin := adminUC.NewadminUC(adminUserService, mailUserService, redisClient, logger)
 
 	userHandler := svcUser.NewuserService(user, logger)
 	adminHandler := svcAdmin.NewadminService(admin, logger)
@@ -82,8 +85,8 @@ func main() {
 	defer cancel()
 
 	//MICROSERVICE GRPC USER
-	http.HandleFunc("/api/user/login", userHandler.Login(ctx))
-	http.HandleFunc("/api/user/logout", userHandler.Logout(ctx))
+	http.HandleFunc("/api/login", userHandler.Login(ctx))
+	http.HandleFunc("/api/logout", userHandler.Logout(ctx))
 	http.HandleFunc("/api/user/register", userHandler.Register(ctx))
 	http.HandleFunc("/api/user/find", userHandler.Find(ctx))
 	http.HandleFunc("/api/user/update", userHandler.Update(ctx))
@@ -97,7 +100,7 @@ func main() {
 	http.HandleFunc("/api/admin/search", adminHandler.Search(ctx))
 
 	server := &http.Server{
-		Addr:         ":4000",
+		Addr:         fmt.Sprintf(":%d", cfg.ApiPort),
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,
 		ErrorLog:     log.Default(),

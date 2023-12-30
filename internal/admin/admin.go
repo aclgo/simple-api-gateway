@@ -18,6 +18,8 @@ type ParamsCreateAdmin struct {
 	Role     string `json:"role"`
 }
 
+func (p *ParamsCreateAdmin) Validate() error { return nil }
+
 type Admin struct {
 	UserID    string    `json:"id"`
 	Name      string    `json:"name"`
@@ -46,3 +48,20 @@ type ErrEmaiCadastred struct {
 func (e ErrEmaiCadastred) Error() string {
 	return "email cadastred"
 }
+
+type ErrEmailSentCheckInbox struct {
+	Message string
+}
+
+func (e ErrEmailSentCheckInbox) Error() string {
+	e.Message = "email sent check this inbox"
+	return e.Message
+}
+
+var (
+	DefaultFromSendMail = "simpleapi@gmail.com"
+
+	DefaultSubjectSendConfirm  = "Confirm signup"
+	DefaulfBodySendConfirm     = "%s"
+	DefaulfTemplateSendConfirm = ""
+)

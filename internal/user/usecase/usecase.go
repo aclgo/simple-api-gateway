@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -10,6 +11,7 @@ import (
 	"github.com/aclgo/simple-api-gateway/proto-service/mail"
 	protoUser "github.com/aclgo/simple-api-gateway/proto-service/user"
 	"github.com/go-redis/redis/v8"
+	"github.com/google/uuid"
 )
 
 type userUc struct {
@@ -140,11 +142,6 @@ func (u *userUc) Update(ctx context.Context, params *user.ParamsUserUpdate) (*us
 	}, nil
 }
 
-const (
-	redisUser        = "user-id: %s"
-	redisCodeNewPass = "new-pass: %s"
-)
-
 func (u *userUc) SendConfirm(ctx context.Context, params *user.ParamsConfirm) error {
 
 	err := u.redisClient.Get(ctx, params.To).Err()
@@ -152,46 +149,117 @@ func (u *userUc) SendConfirm(ctx context.Context, params *user.ParamsConfirm) er
 		return err
 	}
 
-	_, err = u.clientMailGRPC.SendService(ctx, &mail.MailRequest{
-		From:     "",
-		To:       params.To,
-		Subject:  "",
-		Body:     "",
-		Template: "",
-	})
+	if err == redis.Nil {
+
+		confirmID := uuid.NewString()
+
+		_, err = u.clientMailGRPC.SendService(ctx, &mail.MailRequest{
+			From:     user.DefaultFromSendMail,
+			To:       params.To,
+			Subject:  user.DefaultSubjectSendConfirm,
+			Body:     fmt.Sprintf(user.DefaulfBodySendConfirm, confirmID),
+			Template: user.DefaulfTemplateSendConfirm,
+		})
+		if err != nil {
+			return err
+		}
+
+		if err := u.redisClient.Set(ctx, params.To, confirmID, time.Hour).Err(); err != nil {
+			return err
+		}
+
+		if err := u.redisClient.Set(ctx, confirmID, params.To, time.Hour).Err(); err != nil {
+			return err
+		}
+
+		return nil
+	}
+
+	return user.ErrEmailSentCheckInbox{}
+}
+
+func (u *userUc) SendConfirmOK(ctx context.Context, params *user.ParamsConfirmOK) error {
+
+	userEmail, err := u.redisClient.Get(ctx, params.ConfirmCode).Result()
+	if err != nil && err != redis.Nil {
+		return err
+	}
+
+	if err == redis.Nil {
+		return user.ErrInvalidCode{}
+	}
+
+	foundUser, err := u.clientUserGRPC.FindByEmail(ctx, &protoUser.FindByEmailRequest{Email: userEmail})
+
 	if err != nil {
 		return err
 	}
 
-	if err := u.redisClient.Set(ctx, params.To, nil, time.Hour).Err(); err != nil {
+	in := protoUser.UpdateRequest{
+		Id:       foundUser.User.Id,
+		Name:     "",
+		Lastname: "",
+		Password: "",
+		Email:    "",
+	}
+
+	_, err = u.clientUserGRPC.Update(ctx, &in)
+	if err != nil {
 		return err
 	}
 
 	return nil
 }
+
 func (u *userUc) ResetPass(ctx context.Context, params *user.ParamsResetPass) error {
+	switch _, err := u.clientUserGRPC.FindByEmail(ctx, &protoUser.FindByEmailRequest{Email: params.Email}); {
+	case errors.Is(err, redis.Nil):
+		resetCode := uuid.NewString()
 
-	resp, err := u.clientMailGRPC.SendService(ctx, &mail.MailRequest{
-		From:     "",
-		To:       params.Email,
-		Subject:  "",
-		Body:     "",
-		Template: "",
-	})
-	if err != nil {
+		in := mail.MailRequest{
+			From:     user.DefaultFromSendMail,
+			To:       params.Email,
+			Subject:  user.DefaultSubjectResetPass,
+			Body:     fmt.Sprintf(user.DefaultBodyResetPass, resetCode),
+			Template: user.DefaultTemplateResetPass,
+		}
+
+		_, err = u.clientMailGRPC.SendService(ctx, &in)
+		if err != nil {
+			return err
+		}
+
+		if err := u.redisClient.Set(ctx, resetCode, params.Email, time.Hour).Err(); err != nil {
+			return err
+		}
+
+		if err := u.redisClient.Set(ctx, params.Email, resetCode, time.Hour).Err(); err != nil {
+			return err
+		}
+
+	case err == nil:
+		return user.ErrEmailSentCheckInbox{}
+	default:
 		return err
 	}
 
-	fmt.Println(resp)
-
 	return nil
 }
+
 func (u *userUc) NewPass(ctx context.Context, params *user.ParamsNewPass) error {
 
-	// user, err := u.clientUserGRPC.FindById(ctx, &protoUser.FindByIdRequest{Id: params.UserID})
+	idUser, err := u.redisClient.Get(ctx, params.NewPassCode).Result()
+	if err != nil {
+		return err
+	}
+
+	_, err = u.clientUserGRPC.FindById(ctx, &protoUser.FindByIdRequest{Id: idUser})
+	if err != nil {
+		return err
+	}
 
 	updated, err := u.clientUserGRPC.Update(ctx, &protoUser.UpdateRequest{
-		// Id:       params.UserID,
+		Id:       idUser,
 		Password: params.NewPass,
 	})
 

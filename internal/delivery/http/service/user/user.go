@@ -27,22 +27,36 @@ func (s *userService) Register(ctx context.Context) http.HandlerFunc {
 		var params user.ParamsUserRegister
 
 		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-			service.JSON(w, service.NewRestError(http.StatusBadRequest, err.Error(), "json.NewDecoder"), http.StatusBadRequest)
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
 			return
 		}
 
 		if err := params.Validate(); err != nil {
-			service.JSON(w, service.NewRestError(http.StatusBadRequest, err.Error(), "params.Validate"), http.StatusBadRequest)
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
 			return
 		}
 
 		created, err := s.userService.Register(ctx, &params)
 		if err != nil {
-			service.JSON(w, service.ParseError(err, "s.userService.Register"), http.StatusBadRequest)
+			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), err.Error())
+
+			service.JSON(w, response, http.StatusInternalServerError)
+
 			return
 		}
 
-		service.JSON(w, created, http.StatusCreated)
+		resp := map[string]any{
+			"message": "user created",
+			"user":    created,
+		}
+
+		service.JSON(w, resp, http.StatusOK)
 	}
 }
 
@@ -51,22 +65,36 @@ func (s *userService) Login(ctx context.Context) http.HandlerFunc {
 		params := user.ParamsUserLoginRequest{}
 
 		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-			service.JSON(w, service.NewRestError(http.StatusBadRequest, err.Error(), "json.NewDecoder"), http.StatusBadRequest)
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
 			return
 		}
 
 		if err := params.Validate(); err != nil {
-			service.JSON(w, service.NewRestError(http.StatusBadRequest, err.Error(), "params.Validate"), http.StatusBadRequest)
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
 			return
 		}
 
 		logged, err := s.userService.Login(ctx, &params)
 		if err != nil {
-			service.JSON(w, service.ParseError(err, "s.userService.Login"), http.StatusInternalServerError)
+			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), err.Error())
+
+			service.JSON(w, response, http.StatusInternalServerError)
+
 			return
 		}
 
-		service.JSON(w, logged, http.StatusOK)
+		resp := map[string]any{
+			"message": "user logged",
+			"tokens":  logged,
+		}
+
+		service.JSON(w, resp, http.StatusOK)
 	}
 }
 
@@ -75,21 +103,34 @@ func (s *userService) Logout(ctx context.Context) http.HandlerFunc {
 		params := user.ParamsUserLogout{}
 
 		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-			service.JSON(w, nil, http.StatusBadRequest)
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
 			return
 		}
 
 		if err := params.Validate(); err != nil {
-			service.JSON(w, nil, http.StatusBadRequest)
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
 			return
 		}
 
 		if err := s.userService.Logout(ctx, &params); err != nil {
-			service.JSON(w, nil, http.StatusBadRequest)
+			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), err.Error())
+
+			service.JSON(w, response, http.StatusInternalServerError)
+
 			return
 		}
 
-		service.JSON(w, nil, http.StatusOK)
+		resp := map[string]any{
+			"message": "user logout",
+		}
+
+		service.JSON(w, resp, http.StatusOK)
 	}
 }
 
@@ -98,19 +139,33 @@ func (s *userService) Find(ctx context.Context) http.HandlerFunc {
 		params := user.ParamsUserFindById{}
 
 		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-			service.JSON(w, nil, http.StatusBadRequest)
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
 			return
 		}
 
 		if err := params.Validate(); err != nil {
-			service.JSON(w, nil, http.StatusBadRequest)
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
 			return
 		}
 
-		resp, err := s.userService.FindById(ctx, &params)
+		found, err := s.userService.FindById(ctx, &params)
 		if err != nil {
-			service.JSON(w, nil, http.StatusBadRequest)
+			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), err.Error())
+
+			service.JSON(w, response, http.StatusInternalServerError)
+
 			return
+		}
+
+		resp := map[string]any{
+			"message": "user found",
+			"user":    found,
 		}
 
 		service.JSON(w, resp, http.StatusOK)
@@ -121,19 +176,33 @@ func (s *userService) Update(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := user.ParamsUserUpdate{}
 		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-			service.JSON(w, nil, http.StatusBadRequest)
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
 			return
 		}
 
 		if err := params.Validate(); err != nil {
-			service.JSON(w, nil, http.StatusBadRequest)
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
 			return
 		}
 
-		resp, err := s.userService.Update(ctx, &params)
+		updated, err := s.userService.Update(ctx, &params)
 		if err != nil {
-			service.JSON(w, nil, http.StatusBadRequest)
+			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), err.Error())
+
+			service.JSON(w, response, http.StatusInternalServerError)
+
 			return
+		}
+
+		resp := map[string]any{
+			"message": "user updated",
+			"user":    updated,
 		}
 
 		service.JSON(w, resp, http.StatusOK)
@@ -143,18 +212,109 @@ func (s *userService) Update(ctx context.Context) http.HandlerFunc {
 
 func (s *userService) UserConfirm(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("confirm"))
+		params := user.ParamsConfirmOK{}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
+			return
+		}
+
+		if err := params.Validate(); err != nil {
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
+			return
+		}
+
+		if err := s.userService.SendConfirmOK(ctx, &params); err != nil {
+			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), err.Error())
+
+			service.JSON(w, response, http.StatusInternalServerError)
+
+			return
+		}
+
+		resp := map[string]string{
+			"message": "user confirmed signup",
+		}
+
+		service.JSON(w, resp, http.StatusOK)
 	}
 }
 
 func (s *userService) UserResetPass(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("reset pass"))
+		params := user.ParamsResetPass{}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
+			return
+		}
+
+		if err := params.Validate(); err != nil {
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+			return
+
+		}
+
+		if err := s.userService.ResetPass(ctx, &params); err != nil {
+			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), err.Error())
+
+			service.JSON(w, response, http.StatusInternalServerError)
+
+			return
+		}
+
+		resp := map[string]string{
+			"message": "code to reset pass send to email",
+		}
+
+		service.JSON(w, resp, http.StatusOK)
 	}
 }
 
 func (s *userService) UserNewPass(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("new pass"))
+		params := user.ParamsNewPass{}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
+			return
+		}
+
+		if err := params.Validate(); err != nil {
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+			service.JSON(w, response, http.StatusBadRequest)
+
+			return
+		}
+
+		if err := s.userService.NewPass(ctx, &params); err != nil {
+			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), err.Error())
+
+			service.JSON(w, response, http.StatusInternalServerError)
+
+			return
+		}
+
+		resp := map[string]string{
+			"message": "user updated pass",
+		}
+
+		service.JSON(w, resp, http.StatusOK)
+
 	}
 }

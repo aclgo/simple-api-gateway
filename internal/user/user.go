@@ -14,6 +14,7 @@ type UserUC interface {
 	FindByEmail(ctx context.Context, params *ParamsUserFindByEmail) (*User, error)
 	Update(ctx context.Context, params *ParamsUserUpdate) (*User, error)
 	SendConfirm(ctx context.Context, params *ParamsConfirm) error
+	SendConfirmOK(ctx context.Context, params *ParamsConfirmOK) error
 	ResetPass(ctx context.Context, params *ParamsResetPass) error
 	NewPass(ctx context.Context, params *ParamsNewPass) error
 }
@@ -110,19 +111,32 @@ type ParamsConfirm struct {
 	IntervalSend time.Duration
 }
 
+type ParamsConfirmOK struct {
+	ConfirmCode string
+}
+
+func (p *ParamsConfirmOK) Validate() error {
+	if p.ConfirmCode == "" {
+		return ErrInvalidCode{}
+	}
+
+	return nil
+}
+
 type ParamsResetPass struct {
 	Email string `json:"email"`
 }
 
 func (p *ParamsResetPass) Validate() error {
 	if p.Email == "" {
-		return fmt.Errorf("email empty")
+		return ErrInvalidEmail{}
 	}
 
 	return nil
 }
 
 type ParamsNewPass struct {
+	NewPassCode string `json:"code"`
 	NewPass     string `json:"new_pass"`
 	ConfirmPass string `json:"confirm_pass"`
 }
@@ -143,10 +157,60 @@ func (p *ParamsNewPass) Validate() error {
 	return nil
 }
 
+type ErrInvalidEmail struct {
+	Message string
+}
+
+func (e ErrInvalidEmail) Error() string {
+	e.Message = "invalid email"
+
+	return e.Message
+}
+
 type ErrEmailCadastred struct {
 	Message string
 }
 
 func (e ErrEmailCadastred) Error() string {
+	e.Message = "email cadastred"
 	return e.Message
 }
+
+type ErrEmailNotCadastred struct {
+	Message string
+}
+
+func (e ErrEmailNotCadastred) Error() string {
+	e.Message = "email not cadastred"
+	return e.Message
+}
+
+type ErrEmailSentCheckInbox struct {
+	Message string
+}
+
+func (e ErrEmailSentCheckInbox) Error() string {
+	e.Message = "email sent check this inbox"
+	return e.Message
+}
+
+type ErrInvalidCode struct {
+	Message string
+}
+
+func (e ErrInvalidCode) Error() string {
+	e.Message = "invalid code"
+	return e.Message
+}
+
+var (
+	DefaultFromSendMail = "simpleapi@gmail.com"
+
+	DefaultSubjectSendConfirm  = "Confirm signup"
+	DefaulfBodySendConfirm     = "%s"
+	DefaulfTemplateSendConfirm = ""
+
+	DefaultSubjectResetPass  = "Reset Pass"
+	DefaultBodyResetPass     = "%s"
+	DefaultTemplateResetPass = ""
+)
