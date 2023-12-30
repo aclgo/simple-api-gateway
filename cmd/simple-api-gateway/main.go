@@ -68,7 +68,7 @@ func main() {
 		logger.Errorf("grpc.Dial: connection in mail service: %v", err)
 	}
 
-	redisClient := redis.NewRedisClient()
+	redisClient := redis.NewRedisClient(cfg)
 
 	////////////////////////////////
 

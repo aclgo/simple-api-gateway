@@ -1,8 +1,12 @@
 package logger
 
 import (
+	"log"
+	"os"
+
 	"github.com/aclgo/simple-api-gateway/config"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type Logger interface {
@@ -34,7 +38,61 @@ func NewapiLogger(config *config.Config) (*apiLogger, error) {
 	return apl, nil
 }
 
-func (a *apiLogger) Start(*config.Config) error {
+var (
+	mapLogLevel = map[string]zapcore.Level{
+		"debug": zapcore.DebugLevel,
+		"info":  zapcore.InfoLevel,
+		"warn":  zapcore.WarnLevel,
+		"error": zapcore.ErrorLevel,
+		"panic": zapcore.PanicLevel,
+		"fatal": zapcore.FatalLevel,
+	}
+)
+
+func getLogLevel(cfg *config.Config) zapcore.Level {
+	if level, ok := mapLogLevel[cfg.LogLevel]; ok {
+		return level
+	}
+
+	return zapcore.DebugLevel
+}
+
+func (a *apiLogger) Start(cfg *config.Config) error {
+	logLevel := getLogLevel(cfg)
+	logWriter := zapcore.AddSync(os.Stderr)
+
+	var encConfig zapcore.EncoderConfig
+
+	if cfg.Server.Mode == "dev" {
+		encConfig = zap.NewDevelopmentEncoderConfig()
+	} else {
+		encConfig = zap.NewProductionEncoderConfig()
+	}
+
+	encConfig.LevelKey = "LEVEL"
+	encConfig.CallerKey = "CALLER"
+	encConfig.TimeKey = "TIME"
+	encConfig.NameKey = "NAME"
+	encConfig.MessageKey = "MESSAGE"
+	encConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	var encoder zapcore.Encoder
+
+	if cfg.Logger.Encoding == "console" {
+		encoder = zapcore.NewConsoleEncoder(encConfig)
+	} else {
+		encoder = zapcore.NewJSONEncoder(encConfig)
+	}
+
+	core := zapcore.NewCore(encoder, logWriter, zap.NewAtomicLevelAt(logLevel))
+	logger := zap.New(core, zap.AddCaller(), zap.AddCallerSkip(1))
+
+	a.sugaredLogger = logger.Sugar()
+
+	if err := logger.Sync(); err != nil {
+		log.Printf("logger.Sync: %v", err)
+	}
+
 	return nil
 }
 

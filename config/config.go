@@ -7,11 +7,26 @@ import (
 )
 
 type Config struct {
+	LogLevel string
 	Server
+	Redis  Redis
+	Logger Logger
 }
 
 type Server struct {
 	ApiPort int
+	Mode    string
+}
+
+type Logger struct {
+	Encoding string
+}
+
+type Redis struct {
+	Addr     string
+	Username string
+	Password string
+	DB       int
 }
 
 func Load(path string) *Config {
