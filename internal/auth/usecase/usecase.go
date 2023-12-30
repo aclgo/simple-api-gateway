@@ -2,7 +2,7 @@ package authUC
 
 import (
 	"context"
-	"fmt"
+	"encoding/json"
 	"net/http"
 
 	"github.com/aclgo/simple-api-gateway/internal/auth"
@@ -81,15 +81,54 @@ func (a *authUC) ValidateToken(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		fmt.Println(paramsToken)
+		v := context.WithValue(context.Background(), auth.KeyCtxParamsToken, paramsToken)
 
-		next.ServeHTTP(w, r)
+		next.ServeHTTP(w, r.WithContext(v))
 
 	}
 }
 func (a *authUC) ValidateUpdate(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		accessToken := getAccessToken(r)
+		if accessToken == "" {
+			resp := auth.Response{
+				Error:   http.StatusText(http.StatusUnauthorized),
+				Message: auth.ErrInvalidToken{}.Error(),
+			}
 
+			auth.Json(w, resp, http.StatusUnauthorized)
+
+			return
+		}
+
+		_, err := a.validateToken(context.Background(), accessToken)
+		if err != nil {
+			resp := auth.Response{
+				Error:   http.StatusText(http.StatusUnauthorized),
+				Message: err.Error(),
+			}
+
+			auth.Json(w, resp, http.StatusUnauthorized)
+
+			return
+		}
+
+		params := auth.ParamsUpdate{}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			resp := auth.Response{
+				Error:   http.StatusText(http.StatusBadRequest),
+				Message: auth.ErrInvalidToken{}.Error(),
+			}
+
+			auth.Json(w, resp, http.StatusBadRequest)
+
+			return
+		}
+
+		v := context.WithValue(context.Background(), auth.KeyCtxParamsUpdate, params)
+
+		next.ServeHTTP(w, r.WithContext(v))
 	}
 }
 func (a *authUC) ValidateCreateAdmin(next http.HandlerFunc) http.HandlerFunc {
@@ -129,7 +168,23 @@ func (a *authUC) ValidateCreateAdmin(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		params := auth.ParamsCreateAdmin{}
+
+		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+			resp := auth.Response{
+				Error:   http.StatusText(http.StatusBadRequest),
+				Message: auth.ErrInvalidToken{}.Error(),
+			}
+
+			auth.Json(w, resp, http.StatusBadRequest)
+
+			return
+		}
+
+		v := context.WithValue(context.Background(), auth.KeyCtxParamsCreateAdmin, params)
+
+		next.ServeHTTP(w, r.WithContext(v))
+
 	}
 }
 func (a *authUC) ValidateIsAdmin(next http.HandlerFunc) http.HandlerFunc {
@@ -169,7 +224,9 @@ func (a *authUC) ValidateIsAdmin(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		next.ServeHTTP(w, r)
+		v := context.WithValue(context.Background(), auth.KeyCtxParamsToken, paramsToken)
+
+		next.ServeHTTP(w, r.WithContext(v))
 
 	}
 }

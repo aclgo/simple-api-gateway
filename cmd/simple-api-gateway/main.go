@@ -109,7 +109,7 @@ func main() {
 		ErrorLog:     log.Default(),
 	}
 
-	log.Println("server running port 4000")
+	log.Printf("server running port %d", cfg.ApiPort)
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("http.ListenAndServe:%v", err)
 	}

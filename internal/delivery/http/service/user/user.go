@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/aclgo/simple-api-gateway/internal/auth"
 	"github.com/aclgo/simple-api-gateway/internal/delivery/http/service"
 	"github.com/aclgo/simple-api-gateway/internal/user"
 	"github.com/aclgo/simple-api-gateway/pkg/logger"
@@ -174,13 +175,21 @@ func (s *userService) Find(ctx context.Context) http.HandlerFunc {
 
 func (s *userService) Update(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := user.ParamsUserUpdate{}
-		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+		ctxData, ok := r.Context().Value(auth.KeyCtxParamsUpdate).(auth.ParamsUpdate)
+		if !ok {
+			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), service.ErrNoParamsInCtx.Error())
 
-			service.JSON(w, response, http.StatusBadRequest)
+			service.JSON(w, response, http.StatusInternalServerError)
 
 			return
+		}
+
+		params := user.ParamsUserUpdate{
+			UserID:   ctxData.UserID,
+			Name:     ctxData.Name,
+			Lastname: ctxData.Lastname,
+			Password: ctxData.Password,
+			Email:    ctxData.Email,
 		}
 
 		if err := params.Validate(); err != nil {

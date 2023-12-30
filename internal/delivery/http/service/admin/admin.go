@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/aclgo/simple-api-gateway/internal/admin"
+	"github.com/aclgo/simple-api-gateway/internal/auth"
 	"github.com/aclgo/simple-api-gateway/internal/delivery/http/service"
 	"github.com/aclgo/simple-api-gateway/pkg/logger"
 )
@@ -24,12 +25,21 @@ func NewadminService(adminUC admin.AdminUC, logger logger.Logger) *adminService 
 
 func (s *adminService) Create(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := admin.ParamsCreateAdmin{}
-
-		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+		ctxData, ok := r.Context().Value(auth.KeyCtxParamsCreateAdmin).(auth.ParamsCreateAdmin)
+		if !ok {
+			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), service.ErrNoParamsInCtx.Error())
 
 			service.JSON(w, response, http.StatusBadRequest)
+
+			return
+		}
+
+		params := admin.ParamsCreateAdmin{
+			Name:     ctxData.Name,
+			Lastname: ctxData.Lastname,
+			Password: ctxData.Password,
+			Email:    ctxData.Email,
+			Role:     ctxData.Role,
 		}
 
 		if err := params.Validate(); err != nil {

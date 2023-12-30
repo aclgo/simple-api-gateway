@@ -11,21 +11,22 @@ type Auth interface {
 
 type (
 	Level                string
-	CtxParamsUpdate      ParamsUpdate
-	CtxParamsCreateAdmin ParamsCreateAdmin
-	CtxParamsToken       ParamsToken
+	CtxParamsUpdate      string
+	CtxParamsCreateAdmin string
+	CtxParamsToken       string
 )
 
 var (
 	SUPERADMIN Level = "super-admin"
 	ADMIN      Level = "admin"
 
-	KeyCtxParamsUpdate      CtxParamsUpdate
-	KeyCtxParamsCreateAdmin CtxParamsCreateAdmin
-	KeyCtxParamsToken       CtxParamsToken
+	KeyCtxParamsUpdate      CtxParamsUpdate      = "params-update"
+	KeyCtxParamsCreateAdmin CtxParamsCreateAdmin = "params-create-admin"
+	KeyCtxParamsToken       CtxParamsToken       = "params-token"
 )
 
 type ParamsUpdate struct {
+	ParamsToken
 	Name     string `json:"name"`
 	Lastname string `json:"lastname"`
 	Password string `json:"password"`
@@ -37,6 +38,7 @@ type ParamsCreateAdmin struct {
 	Lastname string `json:"lastname"`
 	Password string `json:"password"`
 	Email    string `json:"email"`
+	Role     string `json:"role"`
 }
 
 type ParamsToken struct {

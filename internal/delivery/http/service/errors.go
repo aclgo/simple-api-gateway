@@ -7,6 +7,10 @@ import (
 	"github.com/aclgo/simple-api-gateway/internal/user"
 )
 
+var (
+	ErrNoParamsInCtx = errors.New("no params in ctx")
+)
+
 type RestError struct {
 	ErrError   string    `json:"error,omitempty"`
 	ErrMessage any       `json:"message,omitempty"`
