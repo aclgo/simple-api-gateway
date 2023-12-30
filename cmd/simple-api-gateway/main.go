@@ -11,16 +11,17 @@ import (
 	adminUC "github.com/aclgo/simple-api-gateway/internal/admin/usecase"
 	svcAdmin "github.com/aclgo/simple-api-gateway/internal/delivery/http/service/admin"
 	svcUser "github.com/aclgo/simple-api-gateway/internal/delivery/http/service/user"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 
 	userUC "github.com/aclgo/simple-api-gateway/internal/user/usecase"
 	redis "github.com/aclgo/simple-api-gateway/pkg/redis"
 
+	authUC "github.com/aclgo/simple-api-gateway/internal/auth/usecase"
 	"github.com/aclgo/simple-api-gateway/pkg/logger"
 	protoAdmin "github.com/aclgo/simple-api-gateway/proto-service/admin"
 	protoMail "github.com/aclgo/simple-api-gateway/proto-service/mail"
 	protoUser "github.com/aclgo/simple-api-gateway/proto-service/user"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 var (
@@ -81,23 +82,25 @@ func main() {
 	userHandler := svcUser.NewuserService(user, logger)
 	adminHandler := svcAdmin.NewadminService(admin, logger)
 
+	authUC := authUC.NewAuthUC(clientUserService)
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 
 	//MICROSERVICE GRPC USER
 	http.HandleFunc("/api/login", userHandler.Login(ctx))
-	http.HandleFunc("/api/logout", userHandler.Logout(ctx))
+	http.HandleFunc("/api/logout", authUC.ValidateToken(userHandler.Logout(ctx)))
 	http.HandleFunc("/api/user/register", userHandler.Register(ctx))
-	http.HandleFunc("/api/user/find", userHandler.Find(ctx))
-	http.HandleFunc("/api/user/update", userHandler.Update(ctx))
+	http.HandleFunc("/api/user/find", authUC.ValidateToken(userHandler.Find(ctx)))
+	http.HandleFunc("/api/user/update", authUC.ValidateUpdate(userHandler.Update(ctx)))
 	//MICROSERVCE GRPC MAIL
 	http.HandleFunc("/api/user/confirm", userHandler.UserConfirm(ctx))
 	http.HandleFunc("/api/user/resetpass", userHandler.UserResetPass(ctx))
 	http.HandleFunc("/api/user/newpass", userHandler.UserNewPass(ctx))
 
 	//MICROSERVICE GRPC ADMIN
-	http.HandleFunc("/api/admin/create", adminHandler.Create(ctx))
-	http.HandleFunc("/api/admin/search", adminHandler.Search(ctx))
+	http.HandleFunc("/api/admin/create", authUC.ValidateCreateAdmin(adminHandler.Create(ctx)))
+	http.HandleFunc("/api/admin/search", authUC.ValidateIsAdmin(adminHandler.Search(ctx)))
 
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.ApiPort),
