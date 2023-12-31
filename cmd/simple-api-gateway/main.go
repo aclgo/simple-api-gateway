@@ -25,13 +25,13 @@ import (
 )
 
 var (
-	AddrServiceUser    = ":50051"
-	OptionsServiceUser = []grpc.DialOption{
+	AddrServiceAdmin    = ":50051"
+	OptionsServiceAdmin = []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
-	AddrServiceAdmin    = ":50052"
-	OptionsServiceAdmin = []grpc.DialOption{
+	AddrServiceUser    = ":50052"
+	OptionsServiceUser = []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()),
 	}
 
@@ -84,8 +84,7 @@ func main() {
 
 	authUC := authUC.NewAuthUC(clientUserService)
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-	defer cancel()
+	ctx := context.Background()
 
 	//MICROSERVICE GRPC USER
 	http.HandleFunc("/api/login", userHandler.Login(ctx))
@@ -99,7 +98,7 @@ func main() {
 	http.HandleFunc("/api/user/newpass", userHandler.UserNewPass(ctx))
 
 	//MICROSERVICE GRPC ADMIN
-	http.HandleFunc("/api/admin/create", authUC.ValidateCreateAdmin(adminHandler.Create(ctx)))
+	http.HandleFunc("/api/admin/register", authUC.ValidateCreateAdmin(adminHandler.Create(ctx)))
 	http.HandleFunc("/api/admin/search", authUC.ValidateIsAdmin(adminHandler.Search(ctx)))
 
 	server := &http.Server{
@@ -109,7 +108,7 @@ func main() {
 		ErrorLog:     log.Default(),
 	}
 
-	log.Printf("server running port %d", cfg.ApiPort)
+	logger.Infof("server running port %d", cfg.ApiPort)
 	if err := server.ListenAndServe(); err != nil {
 		log.Fatalf("http.ListenAndServe:%v", err)
 	}

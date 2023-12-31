@@ -2,7 +2,6 @@ package service
 
 import (
 	"errors"
-	"time"
 
 	"github.com/aclgo/simple-api-gateway/internal/user"
 )
@@ -12,16 +11,14 @@ var (
 )
 
 type RestError struct {
-	ErrError   string    `json:"error,omitempty"`
-	ErrMessage any       `json:"message,omitempty"`
-	Timestamp  time.Time `json:"timestamp,omitempty"`
+	ErrError   string `json:"error,omitempty"`
+	ErrMessage any    `json:"message,omitempty"`
 }
 
 func NewRestError(err string, message string) *RestError {
 	return &RestError{
 		ErrError:   err,
 		ErrMessage: message,
-		Timestamp:  time.Now(),
 	}
 }
 

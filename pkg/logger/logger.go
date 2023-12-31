@@ -50,7 +50,7 @@ var (
 )
 
 func getLogLevel(cfg *config.Config) zapcore.Level {
-	if level, ok := mapLogLevel[cfg.LogLevel]; ok {
+	if level, ok := mapLogLevel[cfg.Logger.LogLevel]; ok {
 		return level
 	}
 

@@ -1,2 +1,5 @@
 server:
   apiPort: 4000
+
+Redis:
+  

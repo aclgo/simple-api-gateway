@@ -7,7 +7,6 @@ import (
 )
 
 type Config struct {
-	LogLevel string
 	Server
 	Redis  Redis
 	Logger Logger
@@ -19,6 +18,7 @@ type Server struct {
 }
 
 type Logger struct {
+	LogLevel string
 	Encoding string
 }
 

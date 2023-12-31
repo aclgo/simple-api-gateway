@@ -39,20 +39,20 @@ func (a *authUC) validateToken(ctx context.Context, token string) (*auth.ParamsT
 
 func getAccessToken(r *http.Request) string {
 	accessToken := r.Header.Get("access-token")
-	if len(accessToken) < 7 && accessToken != "baerer " {
+	if len(accessToken) < 7 && accessToken[:7] != "baerer " {
 		return ""
 	}
 
-	return accessToken
+	return accessToken[7:]
 }
 
 func getRefreshToken(r *http.Request) string {
 	refreshToken := r.Header.Get("refresh-token")
-	if len(refreshToken) < 7 && refreshToken != "baerer " {
+	if len(refreshToken) < 7 && refreshToken[:7] != "baerer " {
 		return ""
 	}
 
-	return refreshToken
+	return refreshToken[7:]
 }
 
 func (a *authUC) ValidateToken(next http.HandlerFunc) http.HandlerFunc {
