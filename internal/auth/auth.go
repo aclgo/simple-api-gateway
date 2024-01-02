@@ -4,6 +4,7 @@ import "net/http"
 
 type Auth interface {
 	ValidateToken(next http.HandlerFunc) http.HandlerFunc
+	ValidateTwoToken(next http.HandlerFunc) http.HandlerFunc
 	ValidateUpdate(next http.HandlerFunc) http.HandlerFunc
 	ValidateCreateAdmin(next http.HandlerFunc) http.HandlerFunc
 	ValidateIsAdmin(next http.HandlerFunc) http.HandlerFunc
@@ -14,15 +15,19 @@ type (
 	CtxParamsUpdate      string
 	CtxParamsCreateAdmin string
 	CtxParamsToken       string
+	CtxParamsTwoTokens   string
 )
 
 var (
 	SUPERADMIN Level = "super-admin"
 	ADMIN      Level = "admin"
 
-	KeyCtxParamsUpdate      CtxParamsUpdate      = "params-update"
-	KeyCtxParamsCreateAdmin CtxParamsCreateAdmin = "params-create-admin"
-	KeyCtxParamsToken       CtxParamsToken       = "params-token"
+	KeyCtxParamsUpdate       CtxParamsUpdate      = "params-update"
+	KeyCtxParamsCreateAdmin  CtxParamsCreateAdmin = "params-create-admin"
+	KeyCtxParamsToken        CtxParamsToken       = "params-token"
+	KeyCtxParamsRefreshToken CtxParamsTwoTokens   = "params-two-tokens"
+	KeyAccessTokenHeader                          = "access-token"
+	KeyRefreshTokenHeader                         = "refresh-token"
 )
 
 type ParamsUpdate struct {
@@ -44,4 +49,9 @@ type ParamsCreateAdmin struct {
 type ParamsToken struct {
 	UserID string `json:"user_id"`
 	Role   string `json:"role"`
+}
+
+type ParamsTwoTokens struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
 }

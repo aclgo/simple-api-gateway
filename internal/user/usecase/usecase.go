@@ -66,7 +66,7 @@ func (u *userUc) Login(ctx context.Context, params *user.ParamsUserLoginRequest)
 	}
 
 	return &user.ParamsUserLoginResponse{
-		AccessToken:  resp.Tokens.RefreshToken,
+		AccessToken:  resp.Tokens.AccessToken,
 		RefreshToken: resp.Tokens.RefreshToken,
 	}, nil
 }

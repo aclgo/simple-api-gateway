@@ -101,14 +101,19 @@ func (s *userService) Login(ctx context.Context) http.HandlerFunc {
 
 func (s *userService) Logout(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := user.ParamsUserLogout{}
 
-		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+		paramsRefresh, ok := r.Context().Value(auth.KeyCtxParamsRefreshToken).(*auth.ParamsTwoTokens)
+		if !ok {
+			response := service.NewRestError(http.StatusText(http.StatusBadRequest), service.ErrNoParamsInCtx.Error())
 
 			service.JSON(w, response, http.StatusBadRequest)
 
 			return
+		}
+
+		params := user.ParamsUserLogout{
+			AccessToken:  paramsRefresh.AccessToken,
+			RefreshToken: paramsRefresh.RefreshToken,
 		}
 
 		if err := params.Validate(); err != nil {
@@ -137,15 +142,28 @@ func (s *userService) Logout(ctx context.Context) http.HandlerFunc {
 
 func (s *userService) Find(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		params := user.ParamsUserFindById{}
 
-		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
-			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+		paramsTtk, ok := r.Context().Value(auth.KeyCtxParamsToken).(*auth.ParamsToken)
 
-			service.JSON(w, response, http.StatusBadRequest)
+		if !ok {
+			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), service.ErrNoParamsInCtx.Error())
+
+			service.JSON(w, response, http.StatusInternalServerError)
 
 			return
 		}
+
+		params := user.ParamsUserFindById{
+			UserID: paramsTtk.UserID,
+		}
+
+		// if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+		// 	response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
+
+		// 	service.JSON(w, response, http.StatusBadRequest)
+
+		// 	return
+		// }
 
 		if err := params.Validate(); err != nil {
 			response := service.NewRestError(http.StatusText(http.StatusBadRequest), err.Error())
@@ -175,7 +193,7 @@ func (s *userService) Find(ctx context.Context) http.HandlerFunc {
 
 func (s *userService) Update(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctxData, ok := r.Context().Value(auth.KeyCtxParamsUpdate).(auth.ParamsUpdate)
+		ctxData, ok := r.Context().Value(auth.KeyCtxParamsUpdate).(*auth.ParamsUpdate)
 		if !ok {
 			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), service.ErrNoParamsInCtx.Error())
 

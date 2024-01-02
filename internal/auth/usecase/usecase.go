@@ -38,8 +38,8 @@ func (a *authUC) validateToken(ctx context.Context, token string) (*auth.ParamsT
 }
 
 func getAccessToken(r *http.Request) string {
-	accessToken := r.Header.Get("access-token")
-	if len(accessToken) < 7 && accessToken[:7] != "baerer " {
+	accessToken := r.Header.Get(auth.KeyAccessTokenHeader)
+	if len(accessToken) < 7 || accessToken[:7] != "baerer " {
 		return ""
 	}
 
@@ -47,8 +47,8 @@ func getAccessToken(r *http.Request) string {
 }
 
 func getRefreshToken(r *http.Request) string {
-	refreshToken := r.Header.Get("refresh-token")
-	if len(refreshToken) < 7 && refreshToken[:7] != "baerer " {
+	refreshToken := r.Header.Get(auth.KeyRefreshTokenHeader)
+	if len(refreshToken) < 7 || refreshToken[:7] != "baerer " {
 		return ""
 	}
 
@@ -87,6 +87,46 @@ func (a *authUC) ValidateToken(next http.HandlerFunc) http.HandlerFunc {
 
 	}
 }
+
+func (a *authUC) ValidateTwoToken(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		accessToken := getAccessToken(r)
+		refreshToken := getRefreshToken(r)
+
+		if accessToken == "" {
+			resp := auth.Response{
+				Error:   http.StatusText(http.StatusUnauthorized),
+				Message: auth.ErrInvalidToken{}.Error(),
+			}
+
+			auth.Json(w, resp, http.StatusUnauthorized)
+
+			return
+		}
+
+		if refreshToken == "" {
+			resp := auth.Response{
+				Error:   http.StatusText(http.StatusBadRequest),
+				Message: auth.ErrInvalidToken{}.Error(),
+			}
+
+			auth.Json(w, resp, http.StatusBadRequest)
+
+			return
+		}
+
+		refreshParams := auth.ParamsTwoTokens{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+		}
+
+		ctx := context.WithValue(context.Background(), auth.KeyCtxParamsRefreshToken, &refreshParams)
+
+		next.ServeHTTP(w, r.WithContext(ctx))
+
+	}
+}
+
 func (a *authUC) ValidateUpdate(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		accessToken := getAccessToken(r)
@@ -118,7 +158,7 @@ func (a *authUC) ValidateUpdate(next http.HandlerFunc) http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 			resp := auth.Response{
 				Error:   http.StatusText(http.StatusBadRequest),
-				Message: auth.ErrInvalidToken{}.Error(),
+				Message: err.Error(),
 			}
 
 			auth.Json(w, resp, http.StatusBadRequest)
@@ -126,7 +166,7 @@ func (a *authUC) ValidateUpdate(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		v := context.WithValue(context.Background(), auth.KeyCtxParamsUpdate, params)
+		v := context.WithValue(context.Background(), auth.KeyCtxParamsUpdate, &params)
 
 		next.ServeHTTP(w, r.WithContext(v))
 	}
@@ -181,7 +221,7 @@ func (a *authUC) ValidateCreateAdmin(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		v := context.WithValue(context.Background(), auth.KeyCtxParamsCreateAdmin, params)
+		v := context.WithValue(context.Background(), auth.KeyCtxParamsCreateAdmin, &params)
 
 		next.ServeHTTP(w, r.WithContext(v))
 

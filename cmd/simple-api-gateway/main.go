@@ -88,7 +88,7 @@ func main() {
 
 	//MICROSERVICE GRPC USER
 	http.HandleFunc("/api/login", userHandler.Login(ctx))
-	http.HandleFunc("/api/logout", authUC.ValidateToken(userHandler.Logout(ctx)))
+	http.HandleFunc("/api/logout", authUC.ValidateTwoToken(userHandler.Logout(ctx)))
 	http.HandleFunc("/api/user/register", userHandler.Register(ctx))
 	http.HandleFunc("/api/user/find", authUC.ValidateToken(userHandler.Find(ctx)))
 	http.HandleFunc("/api/user/update", authUC.ValidateUpdate(userHandler.Update(ctx)))
