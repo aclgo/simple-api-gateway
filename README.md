@@ -1,3 +1,3 @@
 # simple-api-gateway
 
-- Simples microservicos grpc no estilo de um api gateway, que une diversos microservicos em um unico sistema.
+- Simple grpc microservices in the style of an API gateway, which multiple microservices in a single system.
