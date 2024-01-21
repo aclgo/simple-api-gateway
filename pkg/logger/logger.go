@@ -2,6 +2,7 @@ package logger
 
 import (
 	"log"
+	"net/http"
 	"os"
 
 	"github.com/aclgo/simple-api-gateway/config"
@@ -125,4 +126,17 @@ func (a *apiLogger) Fatal(args ...any) {
 }
 func (a *apiLogger) Fatalf(template string, args ...any) {
 	a.sugaredLogger.Fatalf(template, args...)
+}
+
+func (a *apiLogger) BasicHttpLogger(next http.Handler) http.Handler {
+	fn := func(w http.ResponseWriter, r *http.Request) {
+		a.sugaredLogger.Info(
+			"method ", r.Method,
+			" endpoint ", r.RequestURI,
+		)
+
+		next.ServeHTTP(w, r)
+	}
+
+	return http.HandlerFunc(fn)
 }
