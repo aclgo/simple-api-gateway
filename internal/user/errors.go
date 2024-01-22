@@ -45,3 +45,10 @@ func (e ErrInvalidCode) Error() string {
 	e.Message = "invalid code"
 	return e.Message
 }
+
+type ErrEmptyToken struct {
+}
+
+func (e ErrEmptyToken) Error() string {
+	return "empty token"
+}
