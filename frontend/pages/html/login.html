@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../css/login.css" type="text/css"/>
+    <title>Aclgo Login</title>
+</head>
+<body>
+    <div class="main">
+        <input type="checkbox" id="chk" aria-hidden="true"/>
+        <div class="create">
+            <form>
+                <label for="chk" aria-hidden="true">Sign up</label>
+                <input type="text" id="user" name="user" placeholder="Name"/>
+                <input type="text" id="lastname" name="lastname" placeholder="Lastname">
+                <input type="text" id="email" name="email" placeholder="Email"/>
+                <input type="text" id="pass" name="pass" placeholder="Password"/>
+                <button type="submit" id="createBtn">Sign up</button>
+            </form>
+        </div>
+        <div class="login">
+            <form>
+                <label for="chk" aria-hidden="true">Login</label>
+                <input type="text" id="user_login" name="user" placeholder="Email or Username"/>
+                <input type="text" id="pass_login" name="pass" placeholder="Password"/>
+                <button type="submit" id="loginBtn">Login</button>
+                <a id="forgot" href="/resetpass">Forgot Pass?</a>
+            </form>
+        </div>
+    </div>
+    <h1 id="message"></h1>
+</body>
+<script>
+
+const BASE_URL = "http://localhost:4000";
+const createBtn = document.getElementById('createBtn');
+const loginBtn = document.getElementById('loginBtn');
+const main = document.querySelector('.main');
+const chk = document.getElementById('chk');
+
+createBtn.addEventListener("click", (event)=> {
+    event.preventDefault();
+    Create();
+});
+
+loginBtn.addEventListener("click",(event)=>{
+    event.preventDefault();
+    Login();
+});
+
+main.addEventListener('click', function(event) {
+    if (event.target === main && chk.checked) {
+        chk.checked = false;
+    }
+});
+
+function Create(){
+    const us = document.getElementById('user').value;
+    const lastname = document.getElementById('lastname').value;
+    const ps = document.getElementById('pass').value;
+    const em = document.getElementById('email').value;
+    const message = document.getElementById('message');
+        
+    const data = {
+        name:us,
+        lastname: lastname,
+        password: ps,
+        email: em,
+
+    };
+
+    console.log(data);
+
+    const options = {
+        method:"POST",
+        body: JSON.stringify(data),
+        headers: {
+            "Content-Type":"application/json"
+        }
+    };
+
+    fetch(BASE_URL + "/api/user/register", options)
+    .then(response => response.text())
+    .then(resp =>{
+        const r = JSON.parse(resp);
+        if ("error" in r){
+            console.log(r.message);
+            window.alert(r.message);
+             //   message.textContent = r.error;
+            return;
+        }
+        //    console.log(r.message);
+        window.alert(r.message)
+    })
+
+    window.location.assign("/confirm_signup")
+
+    .catch(error =>{
+        console.error(error);
+    });
+};
+
+function Login(){
+
+    const us = document.getElementById('user_login').value;
+    const ps = document.getElementById('pass_login').value;
+
+    if (!us || !ps) {
+        console.log("empty crendentials")
+        window.alert("empty crendentials")
+        return;
+    }
+
+    const data = {
+        email: us,
+        password:ps,
+    }
+
+    console.log(data);
+
+    const options = {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: {
+            "Content-Type":"application/json",
+        }
+    };
+
+    fetch(BASE_URL+"/api/login", options)
+    .then(response => {
+        if (response.status == 403){
+            window.location.assign(BASE_URL + "api/confirm");
+            return;
+        }
+
+        return response.json();
+    })
+    .then(r =>{
+            
+        if ("error" in r){
+            console.log(r.message);
+            window.alert(r.message);
+            return;
+        }
+
+
+        console.log(r.tokens.access_token);
+        console.log(r.tokens.refresh_token);
+        window.alert("user logged")
+
+        window.localStorage.setItem('access_token', r.tokens.access_token);
+        window.localStorage.setItem('refresh_token', r.tokens.refresh_token);
+
+        const headers = {
+            'Authorization' : `Baerer ${r.tokens.access_token}`
+        }
+
+        window.location.assign("/home", { headers });
+
+        })
+
+        .catch(error =>{
+            console.error(error);
+    })
+};
+
+</script>
+</html>

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/css/newpass.css" type="text/css">
+    <title>New Pass</title>
+<body>
+
+    <div><h3>Renew You Pass</h3></div>
+    <div id="pass">
+        <ul> 
+            <li>
+                <label for="new-pass">Password</label>
+                <input type="text" name="new-pass" id="new-pass" required/>
+            </li>
+            <li>
+                <label for="confirm-pass">Confirm Password</label>
+                <input type="text" name="confirm-pass" id="confirm-pass" required/>
+            </li>
+            <li>
+                <!-- <label for="new-btn">Renew</label> -->
+                <button id="new-btn">Renew</button>
+            </li>
+
+            <li id="message"></li>
+        </ul>
+    </div>
+</body>
+<script>
+
+const send = document.getElementById("new-btn");
+send.onclick = function(e){
+    e.preventDefault();
+    SendNewPass();
+};
+
+function SendNewPass(){
+
+    const search = new URLSearchParams(window.location.search);
+    const ccode = search.get("code")
+    const newPass = document.getElementById("new-pass").value;
+    const confirmPass = document.getElementById("confirm-pass").value;
+
+    if (ccode === ""){
+        mError("invalid link renew pass");
+        return;  
+    }
+
+    if (newPass === "" || newPass.length < 6 || confirmPass === ""){
+        mError("invalid passwords input");
+        return;
+    }
+
+    const data = {
+        code: ccode,
+        new_pass: newPass,
+        confirm_pass: confirmPass,
+    }
+
+    const options = {
+        method:"POST",
+        body: JSON.stringify(data),
+        headers: {
+            'Content-Type':'application/json',
+        },
+    }
+
+    fetch("http://localhost:4000/api/user/newpass", options)
+    .then(response =>{
+        return response.json();
+    })
+    .then(data =>{
+        if (data.error){
+            console.log(data.error);
+            mError(data.error);
+            return;
+        }
+
+        mError(data.message);
+    });
+}
+
+function mError(msg){
+    const message = document.getElementById("message");
+    message.display = "block"
+    message.textContent = msg
+};
+</script>
+</html>

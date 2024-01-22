@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="../css/home.css" type="text/css">
+    <title>Home</title>
+</head>
+<body>
+    <h1>Aclgo Brand</h1>
+    <nav id="nav">
+        <div id="logout">Logout</div>
+    
+        <div id="profile">Profile</div>
+    
+        <div id="buys">Buys</div>
+    
+        <div id="balance"><p>Balance</p></div>
+    
+        <div id="addBalance">Add Balance</div>
+    </nav>
+</body>
+
+<script>
+
+const BASE_API_ENDPOINT = "http://localhost:4000"
+
+let access_token = window.localStorage.getItem("access_token");
+let refresh_token = window.localStorage.getItem("refresh_token");
+const logout = document.getElementById("logout");
+const profile = document.getElementById("profile")
+
+CheckTokenExist();
+
+logout.addEventListener('click', (e) => {
+    e.preventDefault(); 
+    Logout();
+})
+
+profile.addEventListener('click', (e) => {
+    e.preventDefault();
+
+    console.log("console open")
+})
+
+function CheckTokenExist(){
+    if (!access_token) {
+        window.location.assign("/login")
+    }
+
+    opt = {
+        method: "GET",
+        headers: {
+            'Content-Type':'application/json',
+            'access-token' :`baerer ${access_token}`,
+        }
+    }
+
+    fetch(BASE_API_ENDPOINT + "/api/valid_token", opt)
+    .then(response => {
+        if(!response.ok){
+            console.log("unauthorized")
+            window.location.assign("/login")
+            return;
+        }
+
+        return;
+    })
+
+    Profile();
+};
+
+
+function Logout() {
+    opt = {
+        method: "GET",
+        headers: {
+            'Content-Type':'application/json',
+            'access-token' :`baerer ${access_token}`,
+            'refresh-token' : `baerer ${refresh_token}`
+        }
+    }
+
+    fetch(BASE_API_ENDPOINT + "/api/logout", opt)
+    .then(response => {
+        if(!response.ok){
+            console.log("error to logout")
+            throw new Error("error to logout")
+        }
+
+        console.log()
+
+        return response.json();
+    })
+
+    .then(r => {
+
+        console.log(r.message)
+        access_token = "";
+        refresh_token = "";
+
+        // const log = document.getElementById('logout');
+        window.location.assign("/login")  
+    });
+}
+
+function Profile() {
+    console.log("console loaded")
+    opt = {
+        method: "GET",
+        headers: {
+            'Content-Type':'application/json',
+            'access-token' :`baerer ${access_token}`,
+        }
+    }
+
+    fetch(BASE_API_ENDPOINT + "/api/user/find", opt)
+    .then(response => {
+        if (!response.ok) {
+            console.log("error to get user info")
+            throw new Error("error to get user info")
+        }
+
+        return response.json();
+    })
+    .then(data => {
+        console.log(data);
+    })
+}
+
+</script>
+</html>
