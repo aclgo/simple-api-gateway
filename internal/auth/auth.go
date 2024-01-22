@@ -55,3 +55,22 @@ type ParamsTwoTokens struct {
 	AccessToken  string `json:"access_token"`
 	RefreshToken string `json:"refresh_token"`
 }
+
+type ErrEmptyToken struct {
+}
+
+func (e ErrEmptyToken) Error() string {
+	return "empty token"
+}
+
+func (p *ParamsTwoTokens) Validate() error {
+	if p.AccessToken == "" {
+		return ErrEmptyToken{}
+	}
+
+	if p.RefreshToken == "" {
+		return ErrEmptyToken{}
+	}
+
+	return nil
+}

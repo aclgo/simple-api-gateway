@@ -93,7 +93,24 @@ func (a *authUC) ValidateTwoToken(next http.HandlerFunc) http.HandlerFunc {
 		accessToken := getAccessToken(r)
 		refreshToken := getRefreshToken(r)
 
-		if accessToken == "" {
+		_, err := a.validateToken(context.Background(), accessToken)
+		if err != nil {
+			resp := auth.Response{
+				Error:   http.StatusText(http.StatusUnauthorized),
+				Message: err.Error(),
+			}
+
+			auth.Json(w, resp, http.StatusUnauthorized)
+
+			return
+		}
+
+		refreshParams := auth.ParamsTwoTokens{
+			AccessToken:  accessToken,
+			RefreshToken: refreshToken,
+		}
+
+		if err := refreshParams.Validate(); err != nil {
 			resp := auth.Response{
 				Error:   http.StatusText(http.StatusUnauthorized),
 				Message: auth.ErrInvalidToken{}.Error(),
@@ -102,22 +119,6 @@ func (a *authUC) ValidateTwoToken(next http.HandlerFunc) http.HandlerFunc {
 			auth.Json(w, resp, http.StatusUnauthorized)
 
 			return
-		}
-
-		if refreshToken == "" {
-			resp := auth.Response{
-				Error:   http.StatusText(http.StatusBadRequest),
-				Message: auth.ErrInvalidToken{}.Error(),
-			}
-
-			auth.Json(w, resp, http.StatusBadRequest)
-
-			return
-		}
-
-		refreshParams := auth.ParamsTwoTokens{
-			AccessToken:  accessToken,
-			RefreshToken: refreshToken,
 		}
 
 		ctx := context.WithValue(context.Background(), auth.KeyCtxParamsRefreshToken, &refreshParams)
