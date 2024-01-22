@@ -142,6 +142,22 @@ func (u *userUc) Update(ctx context.Context, params *user.ParamsUserUpdate) (*us
 	}, nil
 }
 
+func (u *userUc) RefreshTokens(ctx context.Context, params *user.ParamsRefreshTokens) (*user.RefreshTokens, error) {
+	tokens, err := u.clientUserGRPC.RefreshTokens(ctx, &protoUser.RefreshTokensRequest{
+		AccessToken:  params.AccessToken,
+		RefreshToken: params.RefreshToken,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user.RefreshTokens{
+		AccessToken:  tokens.AccessToken,
+		RefreshToken: tokens.RefreshToken,
+	}, nil
+}
+
 func (u *userUc) SendConfirm(ctx context.Context, params *user.ParamsConfirm) error {
 
 	err := u.redisClient.Get(ctx, params.To).Err()
