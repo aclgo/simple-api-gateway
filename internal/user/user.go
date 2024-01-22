@@ -156,3 +156,25 @@ func (p *ParamsNewPass) Validate() error {
 
 	return nil
 }
+
+type ParamsRefreshTokens struct {
+	AccessToken  string
+	RefreshToken string
+}
+
+func (p *ParamsRefreshTokens) Validate() error {
+	if p.AccessToken == "" {
+		return ErrEmptyToken{}
+	}
+
+	if p.RefreshToken == "" {
+		return ErrEmptyToken{}
+	}
+
+	return nil
+}
+
+type RefreshTokens struct {
+	AccessToken  string
+	RefreshToken string
+}
