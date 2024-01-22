@@ -2,8 +2,11 @@ package user
 
 import (
 	"context"
+	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/aclgo/simple-api-gateway/internal/auth"
 	"github.com/aclgo/simple-api-gateway/internal/delivery/http/service"
@@ -52,6 +55,22 @@ func (s *userService) Register(ctx context.Context) http.HandlerFunc {
 			return
 		}
 
+		err = s.userService.SendConfirm(
+			ctx,
+			&user.ParamsConfirm{
+				To:           created.Email,
+				IntervalSend: time.Hour,
+			},
+		)
+
+		if err != nil {
+
+			//SE ERROR SEND EMAIL VERIFICACAO, DELETA O USER CRIDADO PARA NAO DA CONFLITO COM O EMAIL
+			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), err.Error())
+			service.JSON(w, response, http.StatusInternalServerError)
+			return
+		}
+
 		resp := map[string]any{
 			"message": "user created",
 			"user":    created,
@@ -83,7 +102,14 @@ func (s *userService) Login(ctx context.Context) http.HandlerFunc {
 
 		logged, err := s.userService.Login(ctx, &params)
 		if err != nil {
-			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), err.Error())
+
+			var response *service.RestError
+
+			if strings.Contains(err.Error(), sql.ErrNoRows.Error()) {
+				response = service.NewRestError(http.StatusText(http.StatusNotFound), "user not exist")
+			} else {
+				response = service.NewRestError(http.StatusText(http.StatusInternalServerError), err.Error())
+			}
 
 			service.JSON(w, response, http.StatusInternalServerError)
 
@@ -237,6 +263,12 @@ func (s *userService) Update(ctx context.Context) http.HandlerFunc {
 	}
 }
 
+func (s *userService) ValidToken(ctx context.Context) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		service.JSON(w, nil, http.StatusOK)
+	}
+}
+
 func (s *userService) UserConfirm(ctx context.Context) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		params := user.ParamsConfirmOK{}
@@ -343,5 +375,27 @@ func (s *userService) UserNewPass(ctx context.Context) http.HandlerFunc {
 
 		service.JSON(w, resp, http.StatusOK)
 
+	}
+}
+
+func (s *userService) RefreshTokens(ctx context.Context) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		refreshTokens, ok := r.Context().Value(auth.KeyCtxParamsRefreshToken).(auth.ParamsTwoTokens)
+		if !ok {
+			resp := service.NewRestError(http.StatusText(http.StatusInternalServerError), service.ErrNoParamsInCtx.Error())
+
+			service.JSON(w, resp, http.StatusInternalServerError)
+			return
+		}
+
+		resp := map[string]interface{}{
+			"message": "tokens refreshed",
+			"tokens": map[string]any{
+				"access_token":  refreshTokens.AccessToken,
+				"refresh_token": refreshTokens.RefreshToken,
+			},
+		}
+
+		service.JSON(w, resp, http.StatusOK)
 	}
 }

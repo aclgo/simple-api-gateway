@@ -11,6 +11,7 @@ import (
 	adminUC "github.com/aclgo/simple-api-gateway/internal/admin/usecase"
 	svcAdmin "github.com/aclgo/simple-api-gateway/internal/delivery/http/service/admin"
 	svcUser "github.com/aclgo/simple-api-gateway/internal/delivery/http/service/user"
+	"github.com/rs/cors"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 
@@ -89,9 +90,12 @@ func main() {
 	//MICROSERVICE GRPC USER
 	http.HandleFunc("/api/login", userHandler.Login(ctx))
 	http.HandleFunc("/api/logout", authUC.ValidateTwoToken(userHandler.Logout(ctx)))
+	http.HandleFunc("/api/refresh", authUC.ValidateTwoToken(userHandler.RefreshTokens(ctx)))
+	http.HandleFunc("/api/valid_token", authUC.ValidateToken(userHandler.ValidToken(ctx)))
 	http.HandleFunc("/api/user/register", userHandler.Register(ctx))
 	http.HandleFunc("/api/user/find", authUC.ValidateToken(userHandler.Find(ctx)))
 	http.HandleFunc("/api/user/update", authUC.ValidateUpdate(userHandler.Update(ctx)))
+
 	//MICROSERVCE GRPC MAIL
 	http.HandleFunc("/api/user/confirm", userHandler.UserConfirm(ctx))
 	http.HandleFunc("/api/user/resetpass", userHandler.UserResetPass(ctx))
@@ -101,11 +105,20 @@ func main() {
 	http.HandleFunc("/api/admin/register", authUC.ValidateCreateAdmin(adminHandler.Create(ctx)))
 	http.HandleFunc("/api/admin/search", authUC.ValidateIsAdmin(adminHandler.Search(ctx)))
 
+	cors := cors.New(cors.Options{
+		AllowedOrigins:   []string{"*"},
+		AllowCredentials: true,
+		AllowedHeaders:   []string{"*"},
+	})
+
+	hlogger := logger.BasicHttpLogger(http.DefaultServeMux)
+
 	server := &http.Server{
 		Addr:         fmt.Sprintf(":%d", cfg.ApiPort),
 		ReadTimeout:  time.Second * 10,
 		WriteTimeout: time.Second * 10,
 		ErrorLog:     log.Default(),
+		Handler:      cors.Handler(hlogger),
 	}
 
 	logger.Infof("server running port %d", cfg.ApiPort)

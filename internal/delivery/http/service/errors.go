@@ -2,8 +2,10 @@ package service
 
 import (
 	"errors"
+	"net/http"
 
 	"github.com/aclgo/simple-api-gateway/internal/user"
+	"google.golang.org/grpc/codes"
 )
 
 var (
@@ -29,4 +31,13 @@ func ParseError(err error, msg string) *RestError {
 	}
 
 	return NewRestError(err.Error(), msg)
+}
+
+func ParseGRPCError(code codes.Code) int {
+	switch code {
+	case codes.NotFound:
+		return http.StatusNotFound
+	}
+
+	return http.StatusInternalServerError
 }
