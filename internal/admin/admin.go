@@ -27,6 +27,7 @@ type Admin struct {
 	Password  string    `json:"password"`
 	Email     string    `json:"email"`
 	Role      string    `json:"role"`
+	Verified  string    `json:"verified"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

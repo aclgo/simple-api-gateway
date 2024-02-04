@@ -11,8 +11,9 @@ message User {
     string password = 4;
     string email = 5;
     string role = 6;
-    google.protobuf.Timestamp created_at = 7;
-    google.protobuf.Timestamp updated_at = 8;
+    string verified = 7;
+    google.protobuf.Timestamp created_at = 8;
+    google.protobuf.Timestamp updated_at = 9;
 }
 
 message CreateUserRequest {
@@ -71,10 +72,18 @@ message UpdateRequest {
     string lastname = 3;
     string password = 4;
     string email = 5;
+    string verified = 6;
 }
 
 message UpdateResponse {
     User user = 1;
+}
+
+message DeleteRequest {
+    string id = 1;
+}
+
+message DeleteResponse {
 }
 
 message ValidateTokenRequest {
@@ -103,6 +112,7 @@ service UserService {
     rpc FindById(FindByIdRequest) returns (FindByIdResponse);
     rpc FindByEmail(FindByEmailRequest) returns (FindByEmailResponse);
     rpc Update(UpdateRequest) returns (UpdateResponse);
+    rpc Delete(DeleteRequest) returns (DeleteResponse);
     rpc ValidateToken(ValidateTokenRequest) returns (ValidateTokenResponse);
     rpc RefreshTokens(RefreshTokensRequest) returns (RefreshTokensResponse);
 }

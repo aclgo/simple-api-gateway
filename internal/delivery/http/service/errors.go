@@ -9,7 +9,8 @@ import (
 )
 
 var (
-	ErrNoParamsInCtx = errors.New("no params in ctx")
+	ErrNoParamsInCtx                 = errors.New("no params in ctx")
+	ErrSendEmailAndCancelNewRegister = errors.New("error send email and delete new user registred")
 )
 
 type RestError struct {

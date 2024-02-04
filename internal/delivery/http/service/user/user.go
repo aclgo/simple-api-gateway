@@ -65,7 +65,17 @@ func (s *userService) Register(ctx context.Context) http.HandlerFunc {
 
 		if err != nil {
 
-			//SE ERROR SEND EMAIL VERIFICACAO, DELETA O USER CRIDADO PARA NAO DA CONFLITO COM O EMAIL
+			//SE ERROR SEND EMAIL VERIFICACAO, DELETA O USER CRIADO PARA NAO DA CONFLITO COM O EMAIL
+			errCancel := s.userService.Delete(ctx, &user.ParamsUserDelete{
+				UserID: created.UserID,
+			})
+
+			if errCancel != nil {
+				response := service.NewRestError(http.StatusText(http.StatusInternalServerError), service.ErrSendEmailAndCancelNewRegister.Error())
+				service.JSON(w, response, http.StatusInternalServerError)
+				return
+			}
+
 			response := service.NewRestError(http.StatusText(http.StatusInternalServerError), err.Error())
 			service.JSON(w, response, http.StatusInternalServerError)
 			return

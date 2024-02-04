@@ -52,3 +52,10 @@ type ErrEmptyToken struct {
 func (e ErrEmptyToken) Error() string {
 	return "empty token"
 }
+
+type ErrUserNotVerified struct {
+}
+
+func (e ErrUserNotVerified) Error() string {
+	return "user not verified"
+}

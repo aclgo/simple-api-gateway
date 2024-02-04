@@ -13,6 +13,7 @@ type UserUC interface {
 	FindById(ctx context.Context, params *ParamsUserFindById) (*User, error)
 	FindByEmail(ctx context.Context, params *ParamsUserFindByEmail) (*User, error)
 	Update(ctx context.Context, params *ParamsUserUpdate) (*User, error)
+	Delete(ctx context.Context, params *ParamsUserDelete) error
 	SendConfirm(ctx context.Context, params *ParamsConfirm) error
 	SendConfirmOK(ctx context.Context, params *ParamsConfirmOK) error
 	ResetPass(ctx context.Context, params *ParamsResetPass) error
@@ -26,6 +27,7 @@ type User struct {
 	Password  string    `json:"password"`
 	Email     string    `json:"email"`
 	Role      string    `json:"role"`
+	Verified  string    `json:"verified"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -177,4 +179,8 @@ func (p *ParamsRefreshTokens) Validate() error {
 type RefreshTokens struct {
 	AccessToken  string
 	RefreshToken string
+}
+
+type ParamsUserDelete struct {
+	UserID string `json:"user_id"`
 }

@@ -1,8 +1,12 @@
 package user
 
-var (
-	DefaultFromSendMail = "simpleapi@gmail.com"
+import "time"
 
+var (
+	DefaultTimeSendEmails = time.Hour
+	DefaultFromSendMail   = "marcellosanttos2014@gmail.com"
+
+	DefaultServiceName         = "gmail"
 	DefaultSubjectSendConfirm  = "Confirm signup"
 	DefaulfBodySendConfirm     = "%s"
 	DefaulfTemplateSendConfirm = ""

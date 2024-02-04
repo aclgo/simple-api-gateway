@@ -83,6 +83,7 @@ func (u *adminUC) Create(ctx context.Context, params *admin.ParamsCreateAdmin) (
 		Password:  created.Password,
 		Email:     created.Email,
 		Role:      created.Role,
+		Verified:  created.Verified,
 		CreatedAt: created.CreatedAt.AsTime(),
 		UpdatedAt: created.UpdatedAt.AsTime(),
 	}, nil
@@ -113,6 +114,7 @@ func (u *adminUC) Search(ctx context.Context, params *admin.ParamsSearch) ([]*ad
 			Password:  users.Users[i].Password,
 			Email:     users.Users[i].Email,
 			Role:      users.Users[i].Role,
+			Verified:  users.Users[i].Verified,
 			CreatedAt: users.Users[i].CreatedAt.AsTime(),
 			UpdatedAt: users.Users[i].UpdatedAt.AsTime(),
 		}

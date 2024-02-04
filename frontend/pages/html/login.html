@@ -56,12 +56,35 @@ main.addEventListener('click', function(event) {
     }
 });
 
+function checkEmpty(data) {
+    if (!data) {
+        window.alert(`${data} empty`)
+    }
+}
+
 function Create(){
     const us = document.getElementById('user').value;
     const lastname = document.getElementById('lastname').value;
     const ps = document.getElementById('pass').value;
     const em = document.getElementById('email').value;
     const message = document.getElementById('message');
+
+    if (!us) {
+        window.alert(`name empty`)
+        return;
+    }
+    if (!lastname) {
+        window.alert(`lastname empty`)
+        return
+    }
+    if (!em) {
+        window.alert(`email empty`)
+        return
+    }
+    if (!ps) {
+        window.alert(`password empty`)
+        return
+    }
         
     const data = {
         name:us,
@@ -93,9 +116,8 @@ function Create(){
         }
         //    console.log(r.message);
         window.alert(r.message)
+        window.location.assign("/confirm_signup")
     })
-
-    window.location.assign("/confirm_signup")
 
     .catch(error =>{
         console.error(error);

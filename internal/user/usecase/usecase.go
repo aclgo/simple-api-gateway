@@ -4,11 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/aclgo/simple-api-gateway/internal/user"
 	"github.com/aclgo/simple-api-gateway/pkg/logger"
-	"github.com/aclgo/simple-api-gateway/proto-service/mail"
+	mail "github.com/aclgo/simple-api-gateway/proto-service/mail"
 	protoUser "github.com/aclgo/simple-api-gateway/proto-service/user"
 	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
@@ -51,6 +50,7 @@ func (u *userUc) Register(ctx context.Context, params *user.ParamsUserRegister) 
 		Password:  created.User.Password,
 		Email:     created.User.Email,
 		Role:      created.User.Role,
+		Verified:  created.User.Verified,
 		CreatedAt: created.User.CreatedAt.AsTime(),
 		UpdatedAt: created.User.UpdatedAt.AsTime(),
 	}, nil
@@ -61,8 +61,13 @@ func (u *userUc) Login(ctx context.Context, params *user.ParamsUserLoginRequest)
 		Email:    params.Email,
 		Password: params.Password,
 	})
-	if err != nil {
+
+	if err != nil && err != (user.ErrUserNotVerified{}) {
 		return nil, err
+	}
+
+	if err == (user.ErrUserNotVerified{}) {
+		return nil, user.ErrUserNotVerified{}
 	}
 
 	return &user.ParamsUserLoginResponse{
@@ -70,6 +75,7 @@ func (u *userUc) Login(ctx context.Context, params *user.ParamsUserLoginRequest)
 		RefreshToken: resp.Tokens.RefreshToken,
 	}, nil
 }
+
 func (u *userUc) Logout(ctx context.Context, params *user.ParamsUserLogout) error {
 	_, err := u.clientUserGRPC.Logout(ctx, &protoUser.UserLogoutRequest{
 		AccessToken:  params.AccessToken,
@@ -95,6 +101,7 @@ func (u *userUc) FindById(ctx context.Context, params *user.ParamsUserFindById) 
 		Password:  resp.User.Password,
 		Email:     resp.User.Email,
 		Role:      resp.User.Role,
+		Verified:  resp.User.Verified,
 		CreatedAt: resp.User.CreatedAt.AsTime(),
 		UpdatedAt: resp.User.UpdatedAt.AsTime(),
 	}, nil
@@ -112,6 +119,7 @@ func (u *userUc) FindByEmail(ctx context.Context, params *user.ParamsUserFindByE
 		Password:  resp.User.Password,
 		Email:     resp.User.Email,
 		Role:      resp.User.Role,
+		Verified:  resp.User.Verified,
 		CreatedAt: resp.User.CreatedAt.AsTime(),
 		UpdatedAt: resp.User.UpdatedAt.AsTime(),
 	}, nil
@@ -137,9 +145,15 @@ func (u *userUc) Update(ctx context.Context, params *user.ParamsUserUpdate) (*us
 		Password:  updated.User.Password,
 		Email:     updated.User.Email,
 		Role:      updated.User.Role,
+		Verified:  updated.User.Verified,
 		CreatedAt: updated.User.CreatedAt.AsTime(),
 		UpdatedAt: updated.User.UpdatedAt.AsTime(),
 	}, nil
+}
+
+func (u *userUc) Delete(ctx context.Context, params *user.ParamsUserDelete) error {
+	_, err := u.clientUserGRPC.Delete(ctx, &protoUser.DeleteRequest{Id: params.UserID})
+	return err
 }
 
 func (u *userUc) RefreshTokens(ctx context.Context, params *user.ParamsRefreshTokens) (*user.RefreshTokens, error) {
@@ -169,22 +183,27 @@ func (u *userUc) SendConfirm(ctx context.Context, params *user.ParamsConfirm) er
 
 		confirmID := uuid.NewString()
 
-		_, err = u.clientMailGRPC.SendService(ctx, &mail.MailRequest{
-			From:     user.DefaultFromSendMail,
-			To:       params.To,
-			Subject:  user.DefaultSubjectSendConfirm,
-			Body:     fmt.Sprintf(user.DefaulfBodySendConfirm, confirmID),
-			Template: user.DefaulfTemplateSendConfirm,
-		})
+		req := &mail.MailRequest{
+			From:        user.DefaultFromSendMail,
+			To:          params.To,
+			Subject:     user.DefaultSubjectSendConfirm,
+			Body:        fmt.Sprintf(user.DefaulfBodySendConfirm, confirmID),
+			Template:    user.DefaulfTemplateSendConfirm,
+			Servicename: user.DefaultServiceName,
+		}
+
+		fmt.Println(req)
+
+		_, err = u.clientMailGRPC.SendService(ctx, req)
 		if err != nil {
 			return err
 		}
 
-		if err := u.redisClient.Set(ctx, params.To, confirmID, time.Hour).Err(); err != nil {
+		if err := u.redisClient.Set(ctx, params.To, confirmID, user.DefaultTimeSendEmails).Err(); err != nil {
 			return err
 		}
 
-		if err := u.redisClient.Set(ctx, confirmID, params.To, time.Hour).Err(); err != nil {
+		if err := u.redisClient.Set(ctx, confirmID, params.To, user.DefaultTimeSendEmails).Err(); err != nil {
 			return err
 		}
 
@@ -213,10 +232,7 @@ func (u *userUc) SendConfirmOK(ctx context.Context, params *user.ParamsConfirmOK
 
 	in := protoUser.UpdateRequest{
 		Id:       foundUser.User.Id,
-		Name:     "",
-		Lastname: "",
-		Password: "",
-		Email:    "",
+		Verified: "yes",
 	}
 
 	_, err = u.clientUserGRPC.Update(ctx, &in)
@@ -245,11 +261,11 @@ func (u *userUc) ResetPass(ctx context.Context, params *user.ParamsResetPass) er
 			return err
 		}
 
-		if err := u.redisClient.Set(ctx, resetCode, params.Email, time.Hour).Err(); err != nil {
+		if err := u.redisClient.Set(ctx, resetCode, params.Email, user.DefaultTimeSendEmails).Err(); err != nil {
 			return err
 		}
 
-		if err := u.redisClient.Set(ctx, params.Email, resetCode, time.Hour).Err(); err != nil {
+		if err := u.redisClient.Set(ctx, params.Email, resetCode, user.DefaultTimeSendEmails).Err(); err != nil {
 			return err
 		}
 
